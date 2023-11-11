@@ -26,10 +26,10 @@ with open("aes.key", "wb") as f:
 with open("aes.iv", "wb") as f:
     f.write(random_iv_digest)
 
-mode = AES.MODE_CFB
-encryptor = AES.new(random_key_digest, mode, random_iv_digest, segment_size=128)
+mode = AES.MODE_CBC
+encryptor = AES.new(random_key_digest, mode, random_iv_digest)
 
-with open("shellcode.bin", "rb") as f:
+with open("PRIMARY_BAOBAB", "rb") as f:
     shellcode = f.read()
 
 cipher = encryptor.encrypt(shellcode)
