@@ -1,9 +1,9 @@
 # Pestilence
-### What is pestilence?
-Pestilence is a shellcode loader designed for evasion. Coded in Rust.
+### What is this?
+Pestilence is a shellcode loader designed for evasion. Coded in Rust. Forked from: https://github.com/cr7pt0pl4gu3/Pestilence
 ### How does it work?
-It loads AES-128-CFB encrypted shellcode (including the key and IV) into the .text PE section during the build stage.
-During the execution, it first checks for "activated" cmdline argument. If present, it decrypts the shellcode stub, copies it gradually (mixed with custom sleeps) and proceeds to execute it in memory by using NTDLL.DLL functions (mixed with custom sleeps).
+It loads AES-128-CBC encrypted shellcode (including the key and IV) into the .text PE section during the build stage.
+During the execution, it first checks for "activate" cmdline argument. If present, it decrypts the shellcode stub, copies it gradually (mixed with custom sleeps) and proceeds to execute it in memory by using NTDLL.DLL functions (mixed with custom sleeps). I plan on modifying this down the line to support additional injection methods.
 # Installation
 ### Requirements
 * python3 (tested with 3.10) + pycryptodomex
@@ -45,9 +45,9 @@ Proceed with installation.
 ### Build
 Open powershell and thrive:
 ```shell
-git clone https://github.com/cr7pt0pl4gu3/Pestilence
+git clone https://github.com/ziggoon/Pestilence/
 cd Pestilence
-cp /path/to/raw/shellcode.bin shellcode.bin
+generate the shellcode
 python encrypt_shellcode.py
 cargo build --release
 ```
